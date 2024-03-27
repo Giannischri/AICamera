@@ -1,0 +1,8 @@
+name: base
+channels:
+  - conda-forge
+dependencies:
+  - tensorflow=2.15.0
+  - flask
+  - opencv
+
