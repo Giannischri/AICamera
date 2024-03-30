@@ -2,19 +2,37 @@
   justify-items: center;
   list-style: none;
   flex-wrap: wrap;
+  height:160px;
+  width:100%;
   padding: 0;
   margin: 0;
+  background-color:white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 5px 10px 15px 20px;
+background: linear-gradient(109.5deg, rgb(13, 11, 136) 9.4%, rgb(86, 255, 248) 78.4%);
 }
 
-.flashing-navbar li {
-  margin: 0 5px; /* Adjust spacing between numbers */
-  padding: 5px 10px; /* Adjust padding for numbers */
+.flashing-navbar .ledcontainer li {
+  margin: 0 20px; /* Adjust spacing between numbers */
+  padding: 15px 20px; /* Adjust padding for numbers */
   text-align: center;
+  height: 30px;
+  width: 150px;
   display: inline-block;
   background-color: #333; /* Adjust background color */
-  color: red; /* Adjust text color */
-  font-size: 18px; /* Adjust font size for numbers */
+  z-index:333;
+  color: #fff; /* Adjust text color to white */
+  font-size: 30px; /* Adjust font size for numbers */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Add text shadow for better visibility */
+  border: 2px solid red;
 }
+
+
 
 .flashing-navbar li[data-flashing="true"] {
   animation: flash 1s ease-in-out infinite alternate;
@@ -24,7 +42,8 @@
   from { opacity: 1; }
   to { opacity: 0.5; }
 }
-.container {  display: grid;
+.container {
+  display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr 1fr;
   grid-auto-columns: 1fr;
@@ -37,15 +56,67 @@
     ". . . . .";
 }
 
+@media (max-width: 500px) {
+  /* Styles for screens smaller than 768px */
+  .grid-item {
+    font-size: 16px;  }
+}
 
+@media (min-width: 800px) and (max-width: 999px) {
+  /* Styles for screens between 768px and 992px */
+  .container {
+    width: 70%;  }
+}
 .grid-item {
    /* Adjust width based on number of columns */
   margin: 5px; /* Add spacing between items */
   padding: 10px; /* Add padding for content */
+  max-width: 100%; /* Ensure image fits horizontally within container */
+  max-height: 100%; /* Ensure image fits vertically within container */
+
   border: 1px solid #ccc; /* Add a border (optional) */
   text-align: center; /* Center text within items (optional) */
+  display: block;
 }
-.btn{
-  height:150px;
-  width:200px;
+.container img {
+  max-width: 100%; /* Ensure image fits horizontally within container */
+  max-height: 100%; /* Ensure image fits vertically within container */
+  display: block; /* Ensure image doesn't leave space for descender characters */
+}
+.ledcontainer{
+  justify-items: center;
+  align-items: center;
+  position:relative;
+  padding-top:200px;
+  left:50%;
+  right:50%;
+  display: flex; /* Ensure proper alignment */
+  transform: translate(-50%, -50%); /* Center the container */
+  width: 30vw; /* Adjust as needed */
+  height: 30vh; /* Adjust as needed */
+}
+.backbone{
+  max-width:100%;
+  background: linear-gradient(109.6deg, rgb(0, 0, 0) 11.2%, rgb(11, 132, 145) 91.1%);
+}
+.button2{
+  background-color: red;
+  width:100%;
+  height:70px;
+  font-size: 20px;
+  visibility: hidden;
+}
+@keyframes flashing {
+  0%, 100% {
+    color: black;; /* Starting and ending text color */
+    background-color: red;
+  }
+  50% {
+    color: red; /* Midway text color */
+    background-color: red;
+  }
+}
+
+.flashing {
+  animation: flashing 1s infinite;
 }

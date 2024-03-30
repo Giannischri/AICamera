@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aicamera-deployment
+spec:
+  replicas: 3  # Adjust replica count as needed
+  selector:
+    matchLabels:
+      app: aicamera-ms
+  template:
+    metadata:
+      labels:
+        app: aicamera-ms
+    spec:
+      containers:
+        - name: aicamera-container
+          image: aicamera-container:latest
+          ports:
+            - containerPort: 8080  # Port on which your microservice listens
+          envFrom:   #secretes enviromentes
+            - secretRef:
+                name: database-credentials
+
+---
+# Microservice Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: aicamera-service
+spec:
+  selector:
+    app: aicamera-ms
+  ports:
+    - protocol: TCP
+      port: 80  # Port exposed by the service
+      targetPort: 8080  # Port on which your microservice listens
+  type: LoadBalancer  # Exposes the service externally
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3  # Adjust replica count as needed
+  selector:
+    matchLabels:
+      app: nginx-ms
+    replicas: 4
+  template:
+    metadata:
+      labels:
+        app: nginx-ms
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:latest
+          ports:
+            - containerPort: 80  # Port on which your microservice listens
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/
+  volumes:
+    - name: nginx-conf
+      secret:
+        configmap: nginx-config
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  default.conf: |  # Replace with your custom Nginx configuration
+    events {
+    # Configure settings related to connections
+    # For example:
+    worker_connections 1024;
+    }
+    http {
+        server {
+            server_name localhost;
+            listen 80;
+    
+            location / {
+                include uwsgi_params;
+                uwsgi_pass uwsgi_flask_app:8080;  # Point to the uWSGI service
+            }
+        }
+    }

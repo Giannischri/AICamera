@@ -16,13 +16,19 @@ from flask import Flask, render_template, Response,jsonify, request,redirect, ur
 from flask_socketio import SocketIO
 app = Flask(__name__)
 socketio = SocketIO(app)
-ITEMS = [{"item1",False},{"item2",False},{"item3",False}, {"item4",False}, {"item5",False}]
-def save_false_prediction(frame, timestamp):
+ITEMS = [
+    {"name": "item1", "x": 0, "y": 0, "z": 0, "status": False},
+    {"name": "item2", "x": 0, "y": 0, "z": 0, "status": False},
+    {"name": "item3", "x": 0, "y": 0, "z": 0, "status": False},
+    {"name": "item4", "x": 0, "y": 0, "z": 0, "status": False},
+    {"name": "item5", "x": 0, "y": 0, "z": 0, "status": False}
+]
+
+def save_prediction(data, pose):
   # Extract relevant data from frame (e.g., pixel values)
-  frame_data = ...
-  data = {'timestamp': timestamp, 'frame_data': frame_data}
-  df = pd.DataFrame(data, index=[0])
-  df.to_csv('false_predictions.csv', mode='a', header=False)
+  print(data[0])
+  df = pd.DataFrame(np.array(data[0]), columns=['x', 'y', 'z'])
+  df.to_csv('output.csv', index=False)
 
 def draw_keypoints(frame, keypoints, confidence_threshold):
     y, x, c = frame.shape
@@ -50,6 +56,7 @@ def draw_connections(frame, keypoints, edges, confidence_threshold):
             #head ankles  and ((p1 in range(0, 5) or p2 in range(0, 5)) or (p1 in range(15, 16) or p2 in range(15, 16))
             if ((p1 == 5 and p2 == 11) or (p1 == 6 and p2 == 12)):
                 if(abs(y2-y1)<=10):
+                    print("firstcheck")
                     return True
 
 
@@ -180,7 +187,7 @@ def emit_frames():
         frame_blurred = cv2.GaussianBlur(frame_gray, (5, 5), 0)
         if prev_frame is not None and prev_prev_frame is not None:
             frame_diff = cv2.absdiff(prev_prev_frame, frame_blurred)
-            _ , thresholded_diff = cv2.threshold(frame_diff, 70, 255, cv2.THRESH_BINARY)
+            _ , thresholded_diff = cv2.threshold(frame_diff, 60, 255, cv2.THRESH_BINARY)
             contours, _ = cv2.findContours(thresholded_diff.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 
@@ -189,13 +196,13 @@ def emit_frames():
                 area = cv2.contourArea(contour)
 
                 if area > 1000:
-
+                    print("motion")
                     if ((0 in a and a[0][0] > 0.7 and a[0][2] > 0.1) or
                             (1 in a and a[1][0] > 0.7 and a[1][2] > 0.1) or
                             (2 in a and a[2][0] > 0.7 and a[2][2] > 0.1) or
                             (3 in a and a[3][0] > 0.7 and a[3][2] > 0.1) or
                             (4 in a and a[4][0] > 0.7 and a[4][2] > 0.1)):
-                        # print("head")
+                        print("head")
                         if ((a[9][0] > 0.7 and a[9][2] > 0.1)
                                 or (a[10][0] > 0.7 and a[10][2] > 0.1)
                                 or (a[8][0] > 0.7 and a[8][2] > 0.1) or (a[7][0] > 0.7 and a[7][2] > 0.1)
@@ -208,8 +215,10 @@ def emit_frames():
             frame_with_text = add_text_to_frame(frame, "FALL DETECTED", font_scale=1.2, color=(0, 255, 0))
             frame_bytes = cv2.imencode('.jpg', frame_with_text)[1].tobytes()
             print("sending frames detected")
-            #yield(ITEMS[1][0])
-            time.sleep(5)
+            with app.app_context():
+                socketio.emit('found', ITEMS[0]['name'])
+            time.sleep(10)
+            found=False
         else:
             frame_bytes=jpeg.tobytes()
         prev_prev_frame=prev_frame
@@ -229,14 +238,13 @@ def emit_frames():
 #if predicted_class == your_false_class:  # Replace with your "false" class
  # timestamp = time.time()
   #save_false_prediction(frame, timestamp)
-@app.route('/test')
-def test():
-    yield (b'--frame\r\n'
-               b'Content-Type: plain/text\r\n\r\n' + "yolo".encode('utf-8') + b'\r\n\r\n'
-               )
-@app.route('/leds')
-def get_leds(ITEMS):
-    return jsonify(ITEMS)
+@socketio.on('message_from_server')
+def handle_message_from_server(data):
+    print('Received data from client:', data)
+
+    # Example: Send a response back to the client
+    response_data = "Hello from the server!"
+    socketio.emit('message_from_server', response_data)
 @app.route('/')
 def index():
     items = [{"item1", False}, {"item2", False}, {"item3", False}, {"item4", False}, {"item5", False}]
@@ -244,13 +252,12 @@ def index():
 @app.route('/video_feed')
 def video_feed():
     return Response(emit_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-@app.route('/faulty-detection', methods=['POST'])
-def your_endpoint():
-    data = request.headers.cameraId  # Get the JSON data from the request
-    print('Received data from frontend:', data)
-    # Process the data as needed
-    # Optionally, you can send a response back to the frontend
-    return jsonify({'message': 'OK'})
+@socketio.on('save')
+def handle_message_from_server2(cameraid):
+    print('Received data from client:', cameraid)
+    print(nonfall)
+    save_prediction(nonfall, 'nonfall')
+    # Example: Send a response back to the client
 
 async def offer_async():
     params = await request.json
@@ -310,4 +317,4 @@ if __name__ == '__main__':
         # Wait for all threads to finish
    # for thread in threads:
       #  thread.join()
-    socketio.run(app, debug=True,host='0.0.0.0')
+    socketio.run(app,debug=True,host="0.0.0.0.",port=5000)
