@@ -1,31 +1,45 @@
 FROM continuumio/miniconda3
-
 # Set the working directory to /app
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
+COPY . .
 
-RUN conda info --envs
-RUN conda env create --name AICam
+RUN conda create -n AICam python=3.9
 SHELL ["/bin/bash", "-c"]
 RUN echo "conda activate AICam" > ~/.bashrc
 ENV PATH /opt/conda/envs/AICam/bin:$PATH
+#RUN mkdir -p "\$CONDA_PREFIX/etc/conda/activate.d" && \
+#   RUN echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$CONDA_PREFIX/lib/" > "\$CONDA_PREFIX/etc/conda/activate.d/env_vars.sh"
 
 #RUN conda update --all --name base
 #
-#RUN conda install --name AICam -c conda-forge compilers make
-RUN conda install --name AICam -c conda-forge opencv matplotlib flask
-RUN pip install tensorflow==2.12.0
-RUN conda install --name AICam pandas
-RUN conda install -n AICam -c conda-forge uwsgi
+RUN pip install --upgrade pip
+RUN apt-get install libstdc++6
+RUN apt-get update && apt-get -y install gcc
+RUN pip install gunicorn
 RUN pip install aiortc
+RUN pip install tensorflow==2.12.0
+
+
+#RUN conda install --name AICam -c conda-forge compilers make
+RUN conda install --name AICam -c conda-forge opencv flask pandas
+RUN conda install --name AICam -c conda-forge libstdcxx-ng
+#RUN conda install --name AICam libgcc
+#RUN conda install --name AICam -c conda-forge compilers
+#RUN pip install --upgrade pandas
+#RUN apt-get install gcc-4.9
+#RUN apt-get install --only-upgrade libstdc++6
+RUN conda install --force-reinstall --name AICam -c conda-forge _libgcc_mutex=0.1=conda_forge
+
+#RUN sudo ufw allow 5000
+
 
 # Install uWSGI inside the Conda environment
 #RUN /bin/bash -c "source activate AICam"
-COPY . .
 
-EXPOSE 5000
 
+CMD ["gunicorn", "--bind", ":8080", "tensorflow1:app"]
 # Set the PATH to include Conda environment
 #ENV PATH /opt/conda/envs/AICam/bin:$PATH
 # Run the command to start uWSGI

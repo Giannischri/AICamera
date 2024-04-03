@@ -1,19 +1,20 @@
 import asyncio
 import concurrent
+import json
 import uuid
+import pandas as pd
 
-import tensorflow as tf
 import numpy as np
 import time
 import os
 from aiortc import RTCPeerConnection, RTCSessionDescription
-import pandas as pd
+import tensorflow as tf
 import cv2
 import threading
 import base64
-import matplotlib.pyplot as plt
+
 from flask import Flask, render_template, Response,jsonify, request,redirect, url_for
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO,emit
 app = Flask(__name__)
 socketio = SocketIO(app)
 ITEMS = [
@@ -119,6 +120,7 @@ def add_text_to_frame(frame, text, font_scale=1.0, color=(255, 0, 0), thickness=
   return frame_with_text
 def emit_frames():
 
+
     found=False
     interpreter = tf.lite.Interpreter(model_path='3.tflite')
     interpreter.allocate_tensors()
@@ -137,7 +139,8 @@ def emit_frames():
     points = []
     prev_prev_frame = None
     prev_frame=None
-
+    with app.app_context():
+        socketio.emit('found', {"name":ITEMS[0]["name"],"x":ITEMS[0]["x"],"y":ITEMS[0]["y"],"z":ITEMS[0]["z"],"status":ITEMS[0]["status"]})
     while cap.isOpened():
 
         ret, frame = cap.read()
@@ -215,8 +218,8 @@ def emit_frames():
             frame_with_text = add_text_to_frame(frame, "FALL DETECTED", font_scale=1.2, color=(0, 255, 0))
             frame_bytes = cv2.imencode('.jpg', frame_with_text)[1].tobytes()
             print("sending frames detected")
-            with app.app_context():
-                socketio.emit('found', ITEMS[0]['name'])
+        #  with app.app_context():
+            #   socketio.emit('found', ITEMS[0])
             time.sleep(10)
             found=False
         else:
@@ -245,18 +248,25 @@ def handle_message_from_server(data):
     # Example: Send a response back to the client
     response_data = "Hello from the server!"
     socketio.emit('message_from_server', response_data)
+#@socketio.on('found')
+#def handle_data():
+   # data = "Data from Flask backend"
+   # print("socket path")
+    #socketio.emit('found', ITEMS[0])
+def trigger_backend_event():
+    print('trigger')
+    socketio.emit('found', ITEMS[0])
 @app.route('/')
 def index():
-    items = [{"item1", False}, {"item2", False}, {"item3", False}, {"item4", False}, {"item5", False}]
-    return render_template('index.html', items = items)
+    return render_template('index.html', items = ITEMS)
 @app.route('/video_feed')
 def video_feed():
     return Response(emit_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 @socketio.on('save')
 def handle_message_from_server2(cameraid):
     print('Received data from client:', cameraid)
-    print(nonfall)
-    save_prediction(nonfall, 'nonfall')
+
+   # save_prediction(nonfall, 'nonfall')
     # Example: Send a response back to the client
 
 async def offer_async():
@@ -318,3 +328,6 @@ if __name__ == '__main__':
    # for thread in threads:
       #  thread.join()
     socketio.run(app,debug=True,host="0.0.0.0.",port=5000)
+
+
+

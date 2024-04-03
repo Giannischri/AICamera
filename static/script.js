@@ -1,17 +1,17 @@
 const ledcontainer = document.getElementById('ledcontainer')
 const container=document.querySelector('.container');
 var founditem;// Function to toggle flashing for a list item
-
+var ITEMS=[];
 
 // Add event listeners to toggle flashing on click (or any other condition)
 //listItems.forEach(listItem => {
   //listItem.addEventListener('click', () => toggleFlashing(listItem));
 //});
-var socket = io();
+var socket = io.connect();
 socket.on('found', function(data) {
-    numOfItem=parseInt(data.substring(4));
-    toggleFlashing(numOfItem)
-    togglevisibility(numOfItem)
+   num=data.name.substring(4);
+    ITEMS[num]=data;
+    console.log(ITEMS)
 });
 
 function handleClick(param) {
