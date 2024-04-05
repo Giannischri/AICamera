@@ -1,8 +1,7 @@
-# Use a slim Python image for efficiency (adjust base image if needed)
-FROM python:3.9-slim
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-#ENV LD_LIBRARY_PATH="/your/path:${LD_LIBRARY_PATH}"
+FROM ubuntu:latest
+ARG OPENCV_VERSION="4.8.0"
+ENV DEBIAN_FRONTEND=noninteractive
+LABEL authors="giann"
 RUN apt-get clean && \
     apt-get update && \
     apt-get install -y --no-install-recommends --fix-missing \
@@ -46,41 +45,48 @@ RUN apt-get clean && \
         && apt-get clean
 
 
-# Set working directory
-WORKDIR /app
+WORKDIR /opencv
+RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip \
+    && wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip \
+    && unzip opencv.zip \
+    && unzip opencv_contrib.zip \
+    && mv opencv-${OPENCV_VERSION} opencv \
+    && mv opencv_contrib-${OPENCV_VERSION} opencv_contrib
 
-# Copy your application code and environment.yml file
-#COPY environment.yml /app/environment.yml
-#COPY boot.sh /app/boot.sh
-COPY requirements.txt /app/requirements.txt
+
+
+RUN mkdir /opencv/opencv/build
+WORKDIR /opencv/opencv/build
+
+
+RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
+ -D CMAKE_INSTALL_PREFIX=/usr/local \
+ -D INSTALL_PYTHON_EXAMPLES=ON \
+ -D INSTALL_C_EXAMPLES=ON \
+ -D OPENCV_ENABLE_NONFREE=ON \
+ -D OPENCV_GENERATE_PKGCONFIG=ON \
+ -D OPENCV_EXTRA_MODULES_PATH=/opencv/opencv_contrib/modules \
+ -D PYTHON_EXECUTABLE=/usr/local/bin/python \
+ -D BUILD_EXAMPLES=ON .. \
+    && make -j$(nproc) && make install && ldconfig
+
+ARG APP_USER_HOME=/app
+
+# Set the working directory to the value of the environment variable
+WORKDIR $APP_USER_HOME
+
+# Copy requirements.txt to the working directory
+COPY requirements2.txt /app/requirements2.txt
 COPY . /app/
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --upgrade pip
-RUN pip install wheel
-RUN pip install aiortc gunicorn flask-socketio flask pandas==2.2.1 numpy==1.23.5 py-opencv
-RUN curl -O https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow_cpu-2.15.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-RUN pip tensorflow_cpu-2.15.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl pandas numpy keras opencv-python
-#RUN pip install --upgrade pip
-#RUN pip install wheel
-#RUN pip install aiortc
-#ENV LD_LIBRARY_PATH="$HOME/.conda/envs/glibcxx_test/lib/"
-# Install dependencies from environment.yml
+# Install the Python dependencies on the virtual environment
 
-
-
-# Install gunicorn (outside conda for compatibility)
-# (Optional if your application uses a web framework)
-#RUN pip install gunicorn protobuf==4.25.3 numpy==1.23.5 keras==2.12.0 aiortc==1.8.0  pandas tensorflow==2.12.0
-#RUN pip install opencv-python
-#RUN pip install flask-socketio
-
-
-# Expose port (adjust port number if needed)
-EXPOSE 5000
-
-
-# Command to start your Flask application using gunicorn (optional)
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app1:app"]
-#CMD ["python", "app1.py"]
-# (Alternative command for non-web applications)
+RUN python3 -m pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements2.txt \
+    && rm requirements2.txt \
+    && pip install tensorflow
+# get default containers bin bash
+#RUN chsh -s ~/.bashrc
+#ENV SHELL /bin/bash
+#ENTRYPOINT ["top", "-b"]
+EXPOSE 7651
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:7651", "app2:app"]

@@ -1,0 +1,13 @@
+flask-socketio
+flask
+Flask-PyMongo==2.2.0
+requests==2.20.1
+gunicorn[eventlet]
+wheel
+aiortc
+flask-socketio
+flask
+pandas==2.2.1
+numpy==1.23.5
+
+

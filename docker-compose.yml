@@ -1,6 +1,22 @@
 version: '3'
 services:
 
+  opencv:
+    build:
+      context: opencv
+      dockerfile: Dockerfile
+    container_name: opencv
+    image: opencv:v1
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - app2data:/var/www
+    networks:
+      - backend
+    ports:
+      - 7651:7651
+
+
   #Flask App Container
   flask:
     build:
@@ -58,4 +74,6 @@ volumes:
   appdata:
     driver: local
   nginxdata:
+    driver: local
+  app2data:
     driver: local
