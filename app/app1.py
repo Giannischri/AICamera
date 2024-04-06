@@ -328,4 +328,4 @@ if __name__ == '__main__':
       #  thread.join()
     ENVIRONMENT_DEBUG = os.environ.get("APP_DEBUG", True)
     ENVIRONMENT_PORT = os.environ.get("APP_PORT", 5000)
-    app.run(host='192.168.1.5', port=ENVIRONMENT_PORT, debug=ENVIRONMENT_DEBUG)
+    app.run(host='0.0.0.0', port=ENVIRONMENT_PORT, debug=ENVIRONMENT_DEBUG)

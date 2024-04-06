@@ -1,5 +1,19 @@
 version: '3'
 services:
+  openai:
+    build:
+      context: openai
+      dockerfile: Dockerfile
+    container_name: openai
+    image: openai:v1
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - app2data:/var/www
+    networks:
+      - frontend
+    ports:
+      - 5001:5001
 
   opencv:
     build:
