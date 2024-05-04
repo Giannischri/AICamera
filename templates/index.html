@@ -10,10 +10,12 @@
 </head>
 <body class="backbone">
 <nav class="flashing-navbar">
+    <button style="position:fixed;margin-right:40px;">Click here to enable sounds</button>
 
+    <audio id="alarmSound" src="static/alarm.wav" preload="auto"></audio>
   <ul class="ledcontainer" id="ledcontainer">
       {% for item in items %}
-    <li id="btn" data-flashing="false" data-loop-index="{{ loop.index }}" >{{ loop.index  }}</li>
+    <li id="btn"  data-loop-index="{{ loop.index }}" >{{ loop.index  }}</li>
    {% endfor %}
   </ul>
 

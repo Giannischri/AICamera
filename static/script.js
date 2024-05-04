@@ -8,10 +8,19 @@ var ITEMS=[];
   //listItem.addEventListener('click', () => toggleFlashing(listItem));
 //});
 var socket = io.connect();
-socket.on('found', function(data) {
+socket.on('foundfall', function(data) {
    num=data.name.substring(4);
+   setTimeout(function() {
+    var alarmSound = document.getElementById('alarmSound');
+    alarmSound.play();
+    }, 1000);
+
+   toggleFlashing(num);
     ITEMS[num]=data;
     console.log(ITEMS)
+    flashingcord(num)
+    console.log("sleep is over")
+
 });
 
 function handleClick(param) {
@@ -30,12 +39,21 @@ function togglevisibility(data){
 function toggleFlashing(listItem) {
     console.log(listItem)
     var led = ledcontainer.querySelector('li:nth-child(' + listItem + ')');
-    const isFlashing=led.getAttribute('data-flashing');
-    if (isFlashing === 'true') {
+    const isFlashing=led.classList.contains('flashing');
+    console.log(isFlashing);
+    if (isFlashing === true) {
       led.classList.remove('flashing');
     } else {
        led.classList.add('flashing');
 
     }
+}
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function flashingcord(num) {
+    await sleep(5000);
+    toggleFlashing(num);
+
 }
 

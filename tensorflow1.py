@@ -10,7 +10,7 @@ import os
 from aiortc import RTCPeerConnection, RTCSessionDescription
 import tensorflow as tf
 import cv2
-import threading
+import threaderings
 import base64
 
 from flask import Flask, render_template, Response,jsonify, request,redirect, url_for
@@ -18,11 +18,11 @@ from flask_socketio import SocketIO,emit
 app = Flask(__name__)
 socketio = SocketIO(app)
 ITEMS = [
-    {"name": "item1", "x": 0, "y": 0, "z": 0, "status": False},
-    {"name": "item2", "x": 0, "y": 0, "z": 0, "status": False},
-    {"name": "item3", "x": 0, "y": 0, "z": 0, "status": False},
-    {"name": "item4", "x": 0, "y": 0, "z": 0, "status": False},
-    {"name": "item5", "x": 0, "y": 0, "z": 0, "status": False}
+   # {"name": "item1", "x": 0, "y": 0, "z": 0, "status": False},
+   # {"name": "item2", "x": 0, "y": 0, "z": 0, "status": False},
+    {"name": "item3", "x": 0, "y": 0, "z": 0, "status": False}
+    #{"name": "item4", "x": 0, "y": 0, "z": 0, "status": False},
+    #{"name": "item5", "x": 0, "y": 0, "z": 0, "status": False}
 ]
 
 def save_prediction(data, pose):
@@ -124,7 +124,7 @@ def emit_frames():
     found=False
     interpreter = tf.lite.Interpreter(model_path='3.tflite')
     interpreter.allocate_tensors()
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture("rtsp://admin:Test1999!@192.168.1.11:554/Streaming/Channels/101")
     height = int(cap.get(4))
     width = int(cap.get(3))
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -218,9 +218,8 @@ def emit_frames():
             frame_with_text = add_text_to_frame(frame, "FALL DETECTED", font_scale=1.2, color=(0, 255, 0))
             frame_bytes = cv2.imencode('.jpg', frame_with_text)[1].tobytes()
             print("sending frames detected")
-        #  with app.app_context():
-            #   socketio.emit('found', ITEMS[0])
-            time.sleep(10)
+            with app.app_context():
+                socketio.emit('foundfall', ITEMS[0])
             found=False
         else:
             frame_bytes=jpeg.tobytes()
