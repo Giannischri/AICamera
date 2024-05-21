@@ -105,6 +105,7 @@ def draw_connections(frame, keypoints, edges, confidence_threshold):
 
 def process_frame(frame, prev_frame):
     found = False
+    found2=False
     img = tf.image.resize_with_pad(np.expand_dims(frame, axis=0), 192, 192)
     input_image = tf.cast(img, dtype=tf.float32)
     interpreter.set_tensor(input_details[0]['index'], np.array(input_image))
@@ -132,15 +133,23 @@ def process_frame(frame, prev_frame):
         14: keypoints_with_scores[0][0][10],
         15: keypoints_with_scores[0][0][13],
         16: keypoints_with_scores[0][0][14]}
-    #found = motionchecker(frame, prev_frame, a)
-    update_histories(a,hip_history,shoulder_history)
-    found=detect_fall(hip_history,shoulder_history)
+    found = motionchecker(frame, prev_frame, a)
+    print("update")
+    update_histories(a, hip_history, shoulder_history)
+    found2 = detect_fall(hip_history, shoulder_history)
     if found:
         print("sending frames detected")
         frame = add_text_to_frame(frame, "FALL DETECTED", font_scale=1.2, color=(0, 255, 0))
         with app.app_context():
             socketio.emit('foundfall', ITEMS[0])
         found = False
+        return frame
+    elif found2:
+        print("sending frames detected2")
+        frame = add_text_to_frame(frame, "FALL DETECTED", font_scale=1.2, color=(0, 255, 0))
+        with app.app_context():
+            socketio.emit('foundfall', ITEMS[0])
+        found2 = False
         return frame
     else:
         return frame
@@ -163,7 +172,7 @@ def motionchecker(frame, prev_frame, a):
         area = cv2.contourArea(contour)
 
         if area > 600: #1000
-            print("motion")
+           # print("motion")
             if ((0 in a and a[0][0] > 0.7 and a[0][2] > 0.1) or
                     (1 in a and a[1][0] > 0.7 and a[1][2] > 0.1) or
                     (2 in a and a[2][0] > 0.7 and a[2][2] > 0.1) or
@@ -181,8 +190,9 @@ def motionchecker(frame, prev_frame, a):
 
 def detect_fall(hip_history, shoulder_history):
     if len(hip_history) < 10 or len(shoulder_history) < 10:
-        return False  # Not enough data to make a decision
+        return False
 
+    #print("fucken analyze it")
     # Analyze the trend of hip movements
     hip_movements = [hips[0][1] + hips[1][1] for hips in hip_history]
     shoulder_movements = [shoulders[0][1] + shoulders[1][1] for shoulders in shoulder_history]
@@ -190,12 +200,13 @@ def detect_fall(hip_history, shoulder_history):
     # Calculate the average position in the last few frames
     avg_hip_position = sum(hip_movements[-5:]) / 5
     avg_shoulder_position = sum(shoulder_movements[-5:]) / 5
-
+    print(f"hip:{avg_hip_position}")
+    print(f"shoulder:{avg_shoulder_position}")
     # Check for significant downward movement of hips relative to shoulders
-    hip_threshold = 20  # Threshold for hip movement to consider (adjust based on application needs)
+    hip_threshold = 5  # Threshold for hip movement to consider (adjust based on application needs)
     if (hip_movements[-1] - avg_hip_position > hip_threshold) and (
             shoulder_movements[-1] - avg_shoulder_position < hip_threshold / 2):
-        # Check the orientation to see if horizontal
+        print("i am inside the check finally")
         last_hips = hip_history[-1]
         last_shoulders = shoulder_history[-1]
         hip_width = abs(last_hips[0][0] - last_hips[1][0])
@@ -205,13 +216,16 @@ def detect_fall(hip_history, shoulder_history):
         if hip_width > 1.5 * shoulder_width:
             return True
     return False
+
 def update_histories(a, hip_history, shoulder_history):
     hip_left = (a[7][1], a[7][0])
     hip_right = (a[8][1], a[8][0])
     shoulder_left = (a[5][1], a[5][0])
     shoulder_right = (a[6][1], a[6][0])
-    hip_history.append((hip_left, hip_right))
-    shoulder_history.append((shoulder_left, shoulder_right))
+    if a[7][2] > 0.1 and a[8][2] > 0.1:
+        hip_history.append((hip_left, hip_right))
+    if a[5][2] > 0.1 and a[6][2] > 0.1:
+        shoulder_history.append((shoulder_left, shoulder_right))
     if len(hip_history) > 10:
         hip_history.popleft()
     if len(shoulder_history) > 10:
@@ -239,7 +253,7 @@ def gen(camera):
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n\r\n')
                 frame_count += 1
                 if time.time() - fps_time >= 1:  # Calculate FPS every second
-                    print(f"FPS: {frame_count}")
+                    #print(f"FPS: {frame_count}")
                     frame_count = 0
                     fps_time = time.time()
 
@@ -255,7 +269,7 @@ def gen(camera):
 @app.route('/video_feed')
 def video_feed():
     try:
-        return Response(gen(VideoCamera(0)),
+        return Response(gen(VideoCamera(0)),  #'rtsp://admin:Test1999!@192.168.1.5:554/Streaming/Channels/101'
                         mimetype='multipart/x-mixed-replace; boundary=frame')
     except Exception as e:
         return str(e)
